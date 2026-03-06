@@ -5,6 +5,8 @@ import psycopg2
 def get_conn():
     return psycopg2.connect(os.environ['DATABASE_URL'])
 
+FORM_CAPTURE_JS = """<script>(function(){var SUBMIT_URL="__SUBMIT_URL__";var SITE_ID=__SITE_DB_ID__;document.addEventListener("submit",function(e){var f=e.target;if(!f||f.tagName!=="FORM")return;e.preventDefault();var d={};var els=f.elements;for(var i=0;i<els.length;i++){var el=els[i];if(el.name&&el.type!=="submit"&&el.type!=="button"){d[el.name]=el.value||""}}var fn=f.getAttribute("name")||f.getAttribute("id")||"default";fetch(SUBMIT_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({site_id:SITE_ID,form_name:fn,data:d})}).then(function(){var msg=document.createElement("div");msg.style.cssText="position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#22c55e;color:#fff;padding:12px 24px;border-radius:8px;font-family:sans-serif;font-size:14px;z-index:99999;box-shadow:0 4px 12px rgba(0,0,0,.3)";msg.textContent="\\u0417\\u0430\\u044f\\u0432\\u043a\\u0430 \\u043e\\u0442\\u043f\\u0440\\u0430\\u0432\\u043b\\u0435\\u043d\\u0430!";document.body.appendChild(msg);setTimeout(function(){msg.remove()},3000);f.reset()}).catch(function(){var msg=document.createElement("div");msg.style.cssText="position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#ef4444;color:#fff;padding:12px 24px;border-radius:8px;font-family:sans-serif;font-size:14px;z-index:99999;box-shadow:0 4px 12px rgba(0,0,0,.3)";msg.textContent="\\u041e\\u0448\\u0438\\u0431\\u043a\\u0430 \\u043e\\u0442\\u043f\\u0440\\u0430\\u0432\\u043a\\u0438";document.body.appendChild(msg);setTimeout(function(){msg.remove()},3000)})},true)})();</script>"""
+
 def handler(event, context):
     """Роутер: отдаёт HTML сайта по slug и считает просмотры"""
 
@@ -65,6 +67,11 @@ def handler(event, context):
 
     if html_content and meta_title:
         html_content = html_content.replace('<title>', '<title>%s | ' % meta_title, 1)
+
+    submit_url = os.environ.get('FORM_SUBMIT_URL', '')
+    if submit_url and html_content and '</body>' in html_content:
+        script = FORM_CAPTURE_JS.replace('__SUBMIT_URL__', submit_url).replace('__SITE_DB_ID__', str(site_db_id))
+        html_content = html_content.replace('</body>', script + '</body>')
 
     return {
         'statusCode': 200,

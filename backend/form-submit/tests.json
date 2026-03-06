@@ -1,0 +1,38 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Submit form data",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "site_id": 999999,
+        "form_name": "contact",
+        "data": {"name": "Test", "email": "test@test.com", "message": "Hello"}
+      },
+      "expectedStatus": 404,
+      "expectedBody": {"error": "string"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Missing fields",
+      "method": "POST",
+      "path": "/",
+      "body": {},
+      "expectedStatus": 400,
+      "expectedBody": {"error": "string"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "GET not allowed",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 405
+    }
+  ]
+}

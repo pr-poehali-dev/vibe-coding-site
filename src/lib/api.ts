@@ -47,6 +47,23 @@ export interface SiteStats {
   total_submissions: number;
 }
 
+export interface Submission {
+  id: number;
+  form_name: string;
+  data: Record<string, string>;
+  sender_ip: string;
+  created_at: string;
+  site_title: string;
+  site_slug: string;
+}
+
+export interface SubmissionsResponse {
+  submissions: Submission[];
+  total: number;
+  page: number;
+  per_page: number;
+}
+
 // Generic fetch helper
 async function apiFetch<T>(
   baseUrl: string,
@@ -146,6 +163,20 @@ export const sitesApi = {
   stats() {
     return apiFetch<SiteStats>(API_SITES, { action: "stats" }, {
       method: "GET",
+    });
+  },
+
+  submissions(siteId?: string, page = 1) {
+    const params: Record<string, string> = { action: "submissions", page: String(page) };
+    if (siteId) params.site_id = siteId;
+    return apiFetch<SubmissionsResponse>(API_SITES, params, {
+      method: "GET",
+    });
+  },
+
+  deleteSubmission(submissionId: number) {
+    return apiFetch<{ ok: boolean }>(API_SITES, { action: "delete-submission", submission_id: String(submissionId) }, {
+      method: "DELETE",
     });
   },
 };

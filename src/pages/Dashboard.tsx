@@ -149,13 +149,26 @@ export default function Dashboard() {
         {/* Header row */}
         <div className="flex items-center justify-between mb-6 animate-fade-in" style={{ animationDelay: "0.15s" }}>
           <h2 className="text-2xl font-bold">Мои сайты</h2>
-          <Button
-            onClick={() => setCreateOpen(true)}
-            className="bg-gradient-primary text-background font-semibold hover:opacity-90 transition-opacity"
-          >
-            <Icon name="Plus" size={18} className="mr-2" />
-            Создать сайт
-          </Button>
+          <div className="flex items-center gap-3">
+            <Link to="/submissions">
+              <Button variant="outline" size="sm">
+                <Icon name="Inbox" size={16} className="mr-2" />
+                Заявки
+                {(stats?.total_submissions ?? 0) > 0 && (
+                  <Badge className="ml-2 bg-gradient-primary text-background text-xs">
+                    {stats.total_submissions}
+                  </Badge>
+                )}
+              </Button>
+            </Link>
+            <Button
+              onClick={() => setCreateOpen(true)}
+              className="bg-gradient-primary text-background font-semibold hover:opacity-90 transition-opacity"
+            >
+              <Icon name="Plus" size={18} className="mr-2" />
+              Создать сайт
+            </Button>
+          </div>
         </div>
 
         {/* Sites grid */}

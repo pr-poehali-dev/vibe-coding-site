@@ -57,6 +57,10 @@ def handler(event, context):
         return regenerate_site(event)
     elif method == 'GET' and action == 'stats':
         return get_stats(event)
+    elif method == 'GET' and action == 'submissions':
+        return get_submissions(event)
+    elif method == 'DELETE' and action == 'delete-submission':
+        return delete_submission(event)
     else:
         return resp(400, {'error': 'Unknown action'})
 
@@ -289,6 +293,92 @@ def get_stats(event):
     conn.close()
 
     return resp(200, {'total_sites': row[0], 'total_views': row[1], 'total_submissions': forms})
+
+def get_submissions(event):
+    user = auth_required(event)
+    if not user:
+        return resp(401, {'error': 'Не авторизован'})
+
+    params = event.get('queryStringParameters') or {}
+    site_id = params.get('site_id', '')
+    page = int(params.get('page', '1'))
+    per_page = min(int(params.get('per_page', '50')), 100)
+    offset = (page - 1) * per_page
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    if site_id:
+        cur.execute("SELECT id FROM sites WHERE site_id = '%s' AND user_id = %d" % (site_id.replace("'", "''"), user['id']))
+        site_row = cur.fetchone()
+        if not site_row:
+            conn.close()
+            return resp(404, {'error': 'Сайт не найден'})
+        db_site_id = site_row[0]
+        cur.execute("SELECT COUNT(*) FROM form_submissions WHERE site_id = %d" % db_site_id)
+        total = cur.fetchone()[0]
+        cur.execute(
+            "SELECT fs.id, fs.form_name, fs.data, fs.sender_ip, fs.created_at, s.title, s.slug "
+            "FROM form_submissions fs JOIN sites s ON fs.site_id = s.id "
+            "WHERE fs.site_id = %d ORDER BY fs.created_at DESC LIMIT %d OFFSET %d"
+            % (db_site_id, per_page, offset)
+        )
+    else:
+        cur.execute("SELECT COUNT(*) FROM form_submissions fs JOIN sites s ON fs.site_id = s.id WHERE s.user_id = %d" % user['id'])
+        total = cur.fetchone()[0]
+        cur.execute(
+            "SELECT fs.id, fs.form_name, fs.data, fs.sender_ip, fs.created_at, s.title, s.slug "
+            "FROM form_submissions fs JOIN sites s ON fs.site_id = s.id "
+            "WHERE s.user_id = %d ORDER BY fs.created_at DESC LIMIT %d OFFSET %d"
+            % (user['id'], per_page, offset)
+        )
+
+    rows = cur.fetchall()
+    conn.close()
+
+    submissions = []
+    for r in rows:
+        data_val = r[2]
+        if isinstance(data_val, str):
+            import json as json_mod
+            data_val = json_mod.loads(data_val)
+        submissions.append({
+            'id': r[0],
+            'form_name': r[1],
+            'data': data_val,
+            'sender_ip': r[3],
+            'created_at': r[4].isoformat() if r[4] else '',
+            'site_title': r[5],
+            'site_slug': r[6],
+        })
+
+    return resp(200, {'submissions': submissions, 'total': total, 'page': page, 'per_page': per_page})
+
+
+def delete_submission(event):
+    user = auth_required(event)
+    if not user:
+        return resp(401, {'error': 'Не авторизован'})
+
+    params = event.get('queryStringParameters') or {}
+    sub_id = params.get('submission_id', '')
+    if not sub_id:
+        return resp(400, {'error': 'submission_id required'})
+
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        "DELETE FROM form_submissions WHERE id = %d AND site_id IN (SELECT id FROM sites WHERE user_id = %d)"
+        % (int(sub_id), user['id'])
+    )
+    deleted = cur.rowcount
+    conn.commit()
+    conn.close()
+
+    if not deleted:
+        return resp(404, {'error': 'Заявка не найдена'})
+    return resp(200, {'ok': True})
+
 
 def generate_html(prompt):
     api_key = os.environ.get('ANTHROPIC_API_KEY', '')
