@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Icon from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ChatWidget from "@/components/ChatWidget";
+import SitePreview from "@/components/SitePreview";
+
+const GENERATE_URL = "https://functions.poehali.dev/3d7133f6-18e0-4ef6-9423-385380880191";
 
 const NAV_LINKS = [
   { label: "Возможности", href: "#features" },
@@ -150,7 +153,16 @@ function Header() {
   );
 }
 
-function Hero() {
+function Hero({ onGenerate, loading }: { onGenerate: (prompt: string) => void; loading: boolean }) {
+  const [prompt, setPrompt] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleSubmit = () => {
+    if (prompt.trim() && !loading) {
+      onGenerate(prompt.trim());
+    }
+  };
+
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
       <div className="absolute inset-0">
@@ -175,19 +187,41 @@ function Hero() {
           Просто опишите, что хотите — и получите результат за считанные минуты.
         </p>
 
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 opacity-0 animate-fade-in" style={{ animationDelay: "0.45s" }}>
+        <form
+          onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}
+          className="flex flex-col sm:flex-row items-center justify-center gap-4 opacity-0 animate-fade-in"
+          style={{ animationDelay: "0.45s" }}
+        >
           <div className="relative w-full sm:w-auto">
             <Input
+              ref={inputRef}
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
               placeholder="Опишите ваш сайт..."
               className="w-full sm:w-[400px] h-12 pl-12 pr-4 bg-white/5 border-white/10 rounded-xl text-foreground placeholder:text-muted-foreground focus:ring-primary/50"
+              disabled={loading}
             />
             <Icon name="Sparkles" size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-primary" />
           </div>
-          <Button size="lg" className="bg-gradient-primary text-background font-bold px-8 h-12 rounded-xl hover:opacity-90 transition-opacity glow-primary">
-            Создать сайт
-            <Icon name="ArrowRight" size={18} className="ml-2" />
+          <Button
+            type="submit"
+            size="lg"
+            disabled={loading || !prompt.trim()}
+            className="bg-gradient-primary text-background font-bold px-8 h-12 rounded-xl hover:opacity-90 transition-opacity glow-primary disabled:opacity-50"
+          >
+            {loading ? (
+              <>
+                <Icon name="Loader2" size={18} className="mr-2 animate-spin" />
+                Генерирую...
+              </>
+            ) : (
+              <>
+                Создать сайт
+                <Icon name="ArrowRight" size={18} className="ml-2" />
+              </>
+            )}
           </Button>
-        </div>
+        </form>
 
         <div className="flex items-center justify-center gap-6 mt-8 text-sm text-muted-foreground opacity-0 animate-fade-in" style={{ animationDelay: "0.6s" }}>
           <span className="flex items-center gap-1.5">
@@ -466,11 +500,40 @@ function Footer() {
   );
 }
 
+interface GeneratedSite {
+  site_id: string;
+  url: string;
+  html: string;
+  prompt: string;
+}
+
 const Index = () => {
+  const [generating, setGenerating] = useState(false);
+  const [generatedSite, setGeneratedSite] = useState<GeneratedSite | null>(null);
+
+  const handleGenerate = async (prompt: string) => {
+    setGenerating(true);
+    try {
+      const res = await fetch(GENERATE_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt }),
+      });
+      const data = await res.json();
+      if (data.url && data.html) {
+        setGeneratedSite({ ...data, prompt });
+      }
+    } catch {
+      // ignore
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground noise">
       <Header />
-      <Hero />
+      <Hero onGenerate={handleGenerate} loading={generating} />
       <About />
       <Features />
       <Projects />
@@ -478,6 +541,14 @@ const Index = () => {
       <Pricing />
       <Footer />
       <ChatWidget />
+      {generatedSite && (
+        <SitePreview
+          html={generatedSite.html}
+          url={generatedSite.url}
+          prompt={generatedSite.prompt}
+          onClose={() => setGeneratedSite(null)}
+        />
+      )}
     </div>
   );
 };
