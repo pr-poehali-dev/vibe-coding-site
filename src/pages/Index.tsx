@@ -2,6 +2,7 @@ import { useState } from "react";
 import Icon from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import ChatWidget from "@/components/ChatWidget";
 
 const NAV_LINKS = [
   { label: "Возможности", href: "#features" },
@@ -476,6 +477,7 @@ const Index = () => {
       <Docs />
       <Pricing />
       <Footer />
+      <ChatWidget />
     </div>
   );
 };
