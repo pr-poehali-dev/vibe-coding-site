@@ -1,4 +1,7 @@
 {
+  "site-proxy": "https://functions.poehali.dev/b691598c-f66d-4482-99a4-8d9f2e9855bb",
+  "auth": "https://functions.poehali.dev/d53add14-15de-4a0d-8070-01ae50222a6e",
+  "sites": "https://functions.poehali.dev/6df0a3e4-93ec-4044-be15-f857cd8f961e",
   "generate-site": "https://functions.poehali.dev/3d7133f6-18e0-4ef6-9423-385380880191",
   "ai-chat": "https://functions.poehali.dev/0a9e4563-f0b8-4ecb-abe2-6b9786683463"
 }

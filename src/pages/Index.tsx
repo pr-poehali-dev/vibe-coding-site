@@ -1,4 +1,6 @@
 import { useState, useRef } from "react";
+import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import Icon from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -92,6 +94,7 @@ const PLANS = [
 
 function Header() {
   const [open, setOpen] = useState(false);
+  const { user } = useAuth();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 glass">
@@ -116,12 +119,27 @@ function Header() {
         </nav>
 
         <div className="hidden md:flex items-center gap-3">
-          <Button variant="ghost" size="sm">
-            Войти
-          </Button>
-          <Button size="sm" className="bg-gradient-primary text-background font-semibold hover:opacity-90 transition-opacity">
-            Начать бесплатно
-          </Button>
+          {user ? (
+            <Link to="/dashboard">
+              <Button size="sm" className="bg-gradient-primary text-background font-semibold hover:opacity-90 transition-opacity">
+                <Icon name="LayoutDashboard" size={16} className="mr-1.5" />
+                Кабинет
+              </Button>
+            </Link>
+          ) : (
+            <>
+              <Link to="/login">
+                <Button variant="ghost" size="sm">
+                  Войти
+                </Button>
+              </Link>
+              <Link to="/register">
+                <Button size="sm" className="bg-gradient-primary text-background font-semibold hover:opacity-90 transition-opacity">
+                  Начать бесплатно
+                </Button>
+              </Link>
+            </>
+          )}
         </div>
 
         <button
@@ -144,9 +162,20 @@ function Header() {
               {l.label}
             </a>
           ))}
-          <Button className="w-full bg-gradient-primary text-background font-semibold mt-2">
-            Начать бесплатно
-          </Button>
+          {user ? (
+            <Link to="/dashboard" onClick={() => setOpen(false)}>
+              <Button className="w-full bg-gradient-primary text-background font-semibold mt-2">
+                <Icon name="LayoutDashboard" size={16} className="mr-1.5" />
+                Кабинет
+              </Button>
+            </Link>
+          ) : (
+            <Link to="/register" onClick={() => setOpen(false)}>
+              <Button className="w-full bg-gradient-primary text-background font-semibold mt-2">
+                Начать бесплатно
+              </Button>
+            </Link>
+          )}
         </div>
       )}
     </header>
