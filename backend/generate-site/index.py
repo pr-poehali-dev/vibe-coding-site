@@ -87,10 +87,16 @@ def handler(event, context):
             resp_data = json.loads(resp.read().decode('utf-8'))
     except urllib.error.HTTPError as e:
         error_body = e.read().decode('utf-8') if e.fp else ''
+        print(f"Anthropic API error {e.code}: {error_body}")
+        hint = ''
+        if e.code == 403:
+            hint = ' — проверьте, что на аккаунте Anthropic подключена оплата и ключ активен'
+        elif e.code == 401:
+            hint = ' — неверный API-ключ'
         return {
             'statusCode': 502,
             'headers': cors,
-            'body': json.dumps({'error': f'AI error: {e.code}', 'details': error_body}),
+            'body': json.dumps({'error': f'Ошибка AI ({e.code}){hint}'}),
         }
 
     html_code = ''
