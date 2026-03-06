@@ -153,7 +153,7 @@ function Header() {
   );
 }
 
-function Hero({ onGenerate, loading }: { onGenerate: (prompt: string) => void; loading: boolean }) {
+function Hero({ onGenerate, loading, error }: { onGenerate: (prompt: string) => void; loading: boolean; error?: string }) {
   const [prompt, setPrompt] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -223,6 +223,13 @@ function Hero({ onGenerate, loading }: { onGenerate: (prompt: string) => void; l
           </Button>
         </form>
 
+        {error && (
+          <div className="mt-4 text-sm text-red-400 flex items-center justify-center gap-2 animate-fade-in">
+            <Icon name="AlertCircle" size={16} />
+            {error}
+          </div>
+        )}
+
         <div className="flex items-center justify-center gap-6 mt-8 text-sm text-muted-foreground opacity-0 animate-fade-in" style={{ animationDelay: "0.6s" }}>
           <span className="flex items-center gap-1.5">
             <Icon name="Check" size={14} className="text-primary" /> Бесплатный старт
@@ -236,6 +243,45 @@ function Hero({ onGenerate, loading }: { onGenerate: (prompt: string) => void; l
         </div>
       </div>
     </section>
+  );
+}
+
+const GENERATING_STEPS = [
+  "Анализирую запрос...",
+  "Создаю структуру сайта...",
+  "Генерирую дизайн и контент...",
+  "Настраиваю адаптивную вёрстку...",
+  "Публикую сайт...",
+];
+
+function GeneratingOverlay() {
+  const [step, setStep] = useState(0);
+
+  useState(() => {
+    const timers = GENERATING_STEPS.map((_, i) =>
+      setTimeout(() => setStep(i), i * 8000)
+    );
+    return () => timers.forEach(clearTimeout);
+  });
+
+  return (
+    <div className="fixed inset-0 z-[90] flex flex-col items-center justify-center bg-background/90 backdrop-blur-xl">
+      <div className="relative mb-8">
+        <div className="w-20 h-20 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Icon name="Sparkles" size={28} className="text-primary animate-pulse" />
+        </div>
+      </div>
+      <h2 className="text-2xl font-bold mb-3">Claude создаёт ваш сайт</h2>
+      <p className="text-muted-foreground text-lg mb-6">{GENERATING_STEPS[step]}</p>
+      <div className="w-64 h-1.5 bg-white/10 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-gradient-primary rounded-full transition-all duration-[2000ms] ease-linear"
+          style={{ width: `${Math.min(15 + step * 20, 90)}%` }}
+        />
+      </div>
+      <p className="text-xs text-muted-foreground mt-4">Обычно занимает 15-30 секунд</p>
+    </div>
   );
 }
 
@@ -510,9 +556,11 @@ interface GeneratedSite {
 const Index = () => {
   const [generating, setGenerating] = useState(false);
   const [generatedSite, setGeneratedSite] = useState<GeneratedSite | null>(null);
+  const [error, setError] = useState("");
 
   const handleGenerate = async (prompt: string) => {
     setGenerating(true);
+    setError("");
     try {
       const res = await fetch(GENERATE_URL, {
         method: "POST",
@@ -520,11 +568,15 @@ const Index = () => {
         body: JSON.stringify({ prompt }),
       });
       const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Ошибка генерации");
+        return;
+      }
       if (data.url && data.html) {
         setGeneratedSite({ ...data, prompt });
       }
     } catch {
-      // ignore
+      setError("Не удалось подключиться к серверу. Попробуйте ещё раз.");
     } finally {
       setGenerating(false);
     }
@@ -533,7 +585,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background text-foreground noise">
       <Header />
-      <Hero onGenerate={handleGenerate} loading={generating} />
+      <Hero onGenerate={handleGenerate} loading={generating} error={error} />
       <About />
       <Features />
       <Projects />
@@ -541,6 +593,7 @@ const Index = () => {
       <Pricing />
       <Footer />
       <ChatWidget />
+      {generating && <GeneratingOverlay />}
       {generatedSite && (
         <SitePreview
           html={generatedSite.html}

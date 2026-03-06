@@ -6,8 +6,28 @@ import uuid
 import boto3
 
 
+SYSTEM_PROMPT = """Ты — профессиональный генератор одностраничных HTML-сайтов.
+Пользователь описывает, какой сайт ему нужен — ты генерируешь полный, готовый HTML-файл.
+
+Строгие правила:
+- Верни ТОЛЬКО чистый HTML-код. Никаких пояснений, никакого markdown, никаких ```
+- Первая строка ответа — <!DOCTYPE html>
+- Последняя строка — </html>
+- Все стили — в <style> внутри <head>
+- Современный, чистый дизайн. Тёмная тема по умолчанию (тёмный фон, светлый текст)
+- Адаптивная вёрстка (mobile-first, используй media queries)
+- Подключи Google Fonts: Inter или Golos Text
+- Плавные CSS-анимации (fade-in, slide-up при загрузке)
+- Градиенты, тени, стеклянные эффекты (glassmorphism)
+- Минимум 4-5 секций: шапка, герой, особенности, о нас, подвал
+- Контент на русском языке, используй эмодзи для акцентов
+- Кнопки с hover-эффектами
+- Полностью самодостаточный HTML (без внешних JS-библиотек)
+- Качественный, реалистичный контент — не заглушки"""
+
+
 def handler(event, context):
-    """Генерирует HTML-сайт по описанию через AI и публикует его в S3"""
+    """Генерирует HTML-сайт по описанию через Claude AI и публикует его"""
 
     if event.get('httpMethod') == 'OPTIONS':
         return {
@@ -26,62 +46,57 @@ def handler(event, context):
     if event.get('httpMethod') != 'POST':
         return {'statusCode': 405, 'headers': cors, 'body': json.dumps({'error': 'Method not allowed'})}
 
-    try:
-        raw_body = event.get('body') or '{}'
-        body = json.loads(raw_body) if isinstance(raw_body, str) else (raw_body or {})
-    except (json.JSONDecodeError, TypeError):
-        body = {}
+    body = {}
+    raw_body = event.get('body') or '{}'
+    if isinstance(raw_body, str):
+        body = json.loads(raw_body)
+    elif isinstance(raw_body, dict):
+        body = raw_body
 
     prompt = body.get('prompt', '').strip()
     if not prompt:
         return {'statusCode': 400, 'headers': cors, 'body': json.dumps({'error': 'No prompt provided'})}
 
-    api_key = os.environ.get('OPENAI_API_KEY', '')
+    api_key = os.environ.get('ANTHROPIC_API_KEY', '')
     if not api_key:
-        return {'statusCode': 500, 'headers': cors, 'body': json.dumps({'error': 'API key not configured'})}
-
-    system_prompt = """Ты — генератор HTML-сайтов. Пользователь описывает сайт, ты генерируешь полный HTML-код.
-
-Правила:
-- Верни ТОЛЬКО HTML-код, без пояснений, без markdown-блоков
-- Используй встроенные стили (тег <style> в <head>)
-- Дизайн должен быть современным, красивым, с тёмной темой
-- Адаптивный дизайн (mobile-friendly)
-- Используй Google Fonts (Golos Text)
-- Добавь плавные анимации через CSS
-- Язык контента — русский
-- Используй эмодзи для визуальных акцентов
-- Минимум 3-4 секции на странице
-- HTML должен быть полным (<!DOCTYPE html> ... </html>)
-- Используй градиенты, glassmorphism-эффекты, современную типографику"""
+        return {'statusCode': 500, 'headers': cors, 'body': json.dumps({'error': 'AI key not configured'})}
 
     payload = json.dumps({
-        "model": "gpt-4o-mini",
+        "model": "claude-sonnet-4-20250514",
+        "max_tokens": 8000,
+        "system": SYSTEM_PROMPT,
         "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": f"Создай сайт: {prompt}"},
+            {"role": "user", "content": f"Создай одностраничный сайт: {prompt}"}
         ],
-        "max_tokens": 4000,
-        "temperature": 0.7,
     }).encode('utf-8')
 
     req = urllib.request.Request(
-        'https://api.openai.com/v1/chat/completions',
+        'https://api.anthropic.com/v1/messages',
         data=payload,
         headers={
             'Content-Type': 'application/json',
-            'Authorization': f'Bearer {api_key}',
+            'x-api-key': api_key,
+            'anthropic-version': '2023-06-01',
         },
         method='POST',
     )
 
+    resp_data = None
     try:
-        with urllib.request.urlopen(req, timeout=60) as resp:
-            result = json.loads(resp.read().decode('utf-8'))
-            html_code = result['choices'][0]['message']['content']
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            resp_data = json.loads(resp.read().decode('utf-8'))
     except urllib.error.HTTPError as e:
         error_body = e.read().decode('utf-8') if e.fp else ''
-        return {'statusCode': 502, 'headers': cors, 'body': json.dumps({'error': f'AI error: {e.code}', 'details': error_body})}
+        return {
+            'statusCode': 502,
+            'headers': cors,
+            'body': json.dumps({'error': f'AI error: {e.code}', 'details': error_body}),
+        }
+
+    html_code = ''
+    for block in resp_data.get('content', []):
+        if block.get('type') == 'text':
+            html_code += block['text']
 
     html_code = html_code.strip()
     if html_code.startswith('```'):
@@ -90,6 +105,13 @@ def handler(event, context):
         if lines and lines[-1].strip() == '```':
             lines = lines[:-1]
         html_code = '\n'.join(lines)
+
+    if not html_code or '<!DOCTYPE' not in html_code.upper():
+        return {
+            'statusCode': 502,
+            'headers': cors,
+            'body': json.dumps({'error': 'AI did not return valid HTML'}),
+        }
 
     site_id = uuid.uuid4().hex[:12]
     s3_key = f"sites/{site_id}/index.html"
