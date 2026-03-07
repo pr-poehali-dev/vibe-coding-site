@@ -27,7 +27,7 @@ SYSTEM_PROMPT = """Ты — профессиональный генератор 
 
 
 def handler(event, context):
-    """Генерирует HTML-сайт по описанию через Claude AI и публикует его"""
+    """Генерирует HTML-сайт по текстовому описанию через Claude AI и публикует его"""
 
     if event.get('httpMethod') == 'OPTIONS':
         return {
