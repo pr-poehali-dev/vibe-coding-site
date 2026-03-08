@@ -63,7 +63,7 @@ def handler(event, context):
         return {'statusCode': 500, 'headers': cors, 'body': json.dumps({'error': 'AI key not configured'})}
 
     payload = json.dumps({
-        "model": "claude-3-5-haiku-20241022",
+        "model": "claude-3-5-sonnet-20241022",
         "max_tokens": 4000,
         "system": SYSTEM_PROMPT,
         "messages": [
