@@ -387,8 +387,8 @@ def generate_html(prompt):
         return None
 
     payload = json.dumps({
-        "model": "claude-sonnet-4-20250514",
-        "max_tokens": 8000,
+        "model": "claude-3-5-haiku-20241022",
+        "max_tokens": 4000,
         "system": SYSTEM_PROMPT,
         "messages": [{"role": "user", "content": "Создай одностраничный сайт: %s" % prompt}],
     }).encode('utf-8')
