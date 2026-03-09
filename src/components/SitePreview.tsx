@@ -97,7 +97,7 @@ export default function SitePreview({ html, url, prompt, onClose }: SitePreviewP
             title="Предпросмотр сайта"
             className="w-full bg-white"
             style={{ height: "calc(100vh - 160px)" }}
-            sandbox="allow-scripts"
+            sandbox="allow-scripts allow-same-origin"
           />
         </div>
       </div>

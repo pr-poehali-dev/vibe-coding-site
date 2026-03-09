@@ -601,8 +601,12 @@ const Index = () => {
         setError(data.error || "Ошибка генерации");
         return;
       }
-      if (data.html) {
-        setGeneratedSite({ site_id: '', url: '', html: data.html, prompt });
+      const html = data.html || '';
+      console.log("Generated HTML length:", html.length, "starts with:", html.substring(0, 100));
+      if (html) {
+        setGeneratedSite({ site_id: '', url: '', html, prompt });
+      } else {
+        setError("Сервер вернул пустой результат");
       }
     } catch (err) {
       console.error("Generate error:", err);
