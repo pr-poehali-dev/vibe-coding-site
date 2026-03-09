@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import Icon from "@/components/ui/icon";
 
@@ -12,8 +12,19 @@ interface SitePreviewProps {
 export default function SitePreview({ html, url, prompt, onClose }: SitePreviewProps) {
   const [viewMode, setViewMode] = useState<"desktop" | "tablet" | "mobile">("desktop");
   const [copied, setCopied] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [blobUrl, setBlobUrl] = useState<string>("");
 
   const widths = { desktop: "100%", tablet: "768px", mobile: "375px" };
+
+  useEffect(() => {
+    if (html) {
+      const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+      const objectUrl = URL.createObjectURL(blob);
+      setBlobUrl(objectUrl);
+      return () => URL.revokeObjectURL(objectUrl);
+    }
+  }, [html]);
 
   const copyLink = () => {
     navigator.clipboard.writeText(url);
@@ -92,13 +103,19 @@ export default function SitePreview({ html, url, prompt, onClose }: SitePreviewP
               </div>
             </div>
           </div>
-          <iframe
-            srcDoc={html}
-            title="Предпросмотр сайта"
-            className="w-full bg-white"
-            style={{ height: "calc(100vh - 160px)" }}
-            sandbox="allow-scripts allow-same-origin"
-          />
+          {blobUrl ? (
+            <iframe
+              ref={iframeRef}
+              src={blobUrl}
+              title="Предпросмотр сайта"
+              className="w-full bg-white"
+              style={{ height: "calc(100vh - 160px)" }}
+            />
+          ) : (
+            <div className="w-full flex items-center justify-center text-muted-foreground" style={{ height: "calc(100vh - 160px)" }}>
+              Загрузка предпросмотра...
+            </div>
+          )}
         </div>
       </div>
     </div>
