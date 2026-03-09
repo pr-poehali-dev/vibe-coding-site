@@ -1,6 +1,5 @@
 import json
 import os
-import ssl
 import urllib.request
 import urllib.error
 import uuid
@@ -64,7 +63,7 @@ def handler(event, context):
 
     payload = json.dumps({
         "model": "claude-sonnet-4-20250514",
-        "max_tokens": 4000,
+        "max_tokens": 3000,
         "system": SYSTEM_PROMPT,
         "messages": [
             {"role": "user", "content": f"Создай одностраничный сайт: {prompt}"}
@@ -72,7 +71,7 @@ def handler(event, context):
     }).encode('utf-8')
 
     req = urllib.request.Request(
-        'https://188.137.252.157/v1/messages',
+        'https://api.anthropic.com/v1/messages',
         data=payload,
         headers={
             'Content-Type': 'application/json',
@@ -82,13 +81,9 @@ def handler(event, context):
         method='POST',
     )
 
-    ssl_ctx = ssl.create_default_context()
-    ssl_ctx.check_hostname = False
-    ssl_ctx.verify_mode = ssl.CERT_NONE
-
     resp_data = None
     try:
-        with urllib.request.urlopen(req, timeout=120, context=ssl_ctx) as resp:
+        with urllib.request.urlopen(req, timeout=25) as resp:
             resp_data = json.loads(resp.read().decode('utf-8'))
     except urllib.error.HTTPError as e:
         error_body = e.read().decode('utf-8') if e.fp else ''
