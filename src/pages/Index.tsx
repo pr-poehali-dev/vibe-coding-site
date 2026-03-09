@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import ChatWidget from "@/components/ChatWidget";
 import SitePreview from "@/components/SitePreview";
 
-const GENERATE_URL = "https://188.137.252.157/generate";
+const GENERATE_URL = "https://api.vibekodi.online/generate";
 
 const NAV_LINKS = [
   { label: "Возможности", href: "#features" },
