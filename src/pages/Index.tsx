@@ -604,7 +604,8 @@ const Index = () => {
       if (data.html) {
         setGeneratedSite({ site_id: '', url: '', html: data.html, prompt });
       }
-    } catch {
+    } catch (err) {
+      console.error("Generate error:", err);
       setError("Не удалось подключиться к серверу. Попробуйте ещё раз.");
     } finally {
       setGenerating(false);
