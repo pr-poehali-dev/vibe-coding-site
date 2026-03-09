@@ -382,47 +382,21 @@ def delete_submission(event):
 
 
 def generate_html(prompt):
-    api_key = os.environ.get('ANTHROPIC_API_KEY', '')
-    if not api_key:
-        return None
-
-    payload = json.dumps({
-        "model": "claude-sonnet-4-20250514",
-        "max_tokens": 4000,
-        "system": SYSTEM_PROMPT,
-        "messages": [{"role": "user", "content": "Создай одностраничный сайт: %s" % prompt}],
-    }).encode('utf-8')
-
+    """Генерация HTML через внешний API vibekodi"""
+    payload = json.dumps({"prompt": prompt}).encode('utf-8')
     req = urllib.request.Request(
-        'https://188.137.252.157/v1/messages',
+        'https://api.vibekodi.online/generate',
         data=payload,
-        headers={'Content-Type': 'application/json', 'x-api-key': api_key, 'anthropic-version': '2023-06-01'},
+        headers={'Content-Type': 'application/json'},
         method='POST',
     )
-
-    ssl_ctx = ssl.create_default_context()
-    ssl_ctx.check_hostname = False
-    ssl_ctx.verify_mode = ssl.CERT_NONE
-
     try:
-        with urllib.request.urlopen(req, timeout=120, context=ssl_ctx) as r:
+        with urllib.request.urlopen(req, timeout=180) as r:
             data = json.loads(r.read().decode('utf-8'))
     except Exception:
         return None
 
-    html = ''
-    for block in data.get('content', []):
-        if block.get('type') == 'text':
-            html += block['text']
-
-    html = html.strip()
-    if html.startswith('```'):
-        lines = html.split('\n')
-        lines = lines[1:]
-        if lines and lines[-1].strip() == '```':
-            lines = lines[:-1]
-        html = '\n'.join(lines)
-
+    html = (data.get('html') or '').strip()
     if not html or '<!DOCTYPE' not in html.upper():
         return None
     return html
