@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import Icon from "@/components/ui/icon";
 
@@ -9,22 +9,12 @@ interface SitePreviewProps {
   onClose: () => void;
 }
 
-export default function SitePreview({ html, url, prompt, onClose }: SitePreviewProps) {
+export default function SitePreview({ url, prompt, onClose }: SitePreviewProps) {
   const [viewMode, setViewMode] = useState<"desktop" | "tablet" | "mobile">("desktop");
   const [copied, setCopied] = useState(false);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [blobUrl, setBlobUrl] = useState<string>("");
+  const [iframeLoaded, setIframeLoaded] = useState(false);
 
   const widths = { desktop: "100%", tablet: "768px", mobile: "375px" };
-
-  useEffect(() => {
-    if (html) {
-      const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-      const objectUrl = URL.createObjectURL(blob);
-      setBlobUrl(objectUrl);
-      return () => URL.revokeObjectURL(objectUrl);
-    }
-  }, [html]);
 
   const copyLink = () => {
     navigator.clipboard.writeText(url);
@@ -103,19 +93,26 @@ export default function SitePreview({ html, url, prompt, onClose }: SitePreviewP
               </div>
             </div>
           </div>
-          {blobUrl ? (
-            <iframe
-              ref={iframeRef}
-              src={blobUrl}
-              title="Предпросмотр сайта"
-              className="w-full bg-white"
-              style={{ height: "calc(100vh - 160px)" }}
-            />
-          ) : (
-            <div className="w-full flex items-center justify-center text-muted-foreground" style={{ height: "calc(100vh - 160px)" }}>
-              Загрузка предпросмотра...
+          {!iframeLoaded && (
+            <div
+              className="w-full flex flex-col items-center justify-center gap-3 text-muted-foreground absolute inset-0 mt-[45px]"
+            >
+              <div className="w-6 h-6 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              Загрузка сайта...
             </div>
           )}
+          <iframe
+            src={url}
+            title="Предпросмотр сайта"
+            className="w-full bg-white"
+            style={{
+              height: "calc(100vh - 160px)",
+              opacity: iframeLoaded ? 1 : 0,
+              transition: "opacity 0.3s ease",
+            }}
+            onLoad={() => setIframeLoaded(true)}
+            sandbox="allow-scripts allow-same-origin"
+          />
         </div>
       </div>
     </div>

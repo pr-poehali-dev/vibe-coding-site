@@ -602,9 +602,10 @@ const Index = () => {
         return;
       }
       const html = data.html || '';
-      console.log("Generated HTML length:", html.length, "starts with:", html.substring(0, 100));
-      if (html) {
-        setGeneratedSite({ site_id: '', url: '', html, prompt });
+      const siteUrl = data.url || '';
+      const siteId = data.site_id || '';
+      if (html && siteUrl) {
+        setGeneratedSite({ site_id: siteId, url: siteUrl, html, prompt });
       } else {
         setError("Сервер вернул пустой результат");
       }
