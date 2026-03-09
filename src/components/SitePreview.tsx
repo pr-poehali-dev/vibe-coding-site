@@ -53,21 +53,25 @@ export default function SitePreview({ html, url, prompt, onClose }: SitePreviewP
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={copyLink}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <Icon name={copied ? "Check" : "Copy"} size={16} className="mr-1.5" />
-            {copied ? "Скопировано" : "Копировать ссылку"}
-          </Button>
-          <a href={url} target="_blank" rel="noopener noreferrer">
-            <Button size="sm" className="bg-gradient-primary text-background font-semibold hover:opacity-90">
-              <Icon name="ExternalLink" size={16} className="mr-1.5" />
-              Открыть сайт
-            </Button>
-          </a>
+          {url && (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={copyLink}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <Icon name={copied ? "Check" : "Copy"} size={16} className="mr-1.5" />
+                {copied ? "Скопировано" : "Копировать ссылку"}
+              </Button>
+              <a href={url} target="_blank" rel="noopener noreferrer">
+                <Button size="sm" className="bg-gradient-primary text-background font-semibold hover:opacity-90">
+                  <Icon name="ExternalLink" size={16} className="mr-1.5" />
+                  Открыть сайт
+                </Button>
+              </a>
+            </>
+          )}
         </div>
       </div>
 
@@ -84,7 +88,7 @@ export default function SitePreview({ html, url, prompt, onClose }: SitePreviewP
             </div>
             <div className="flex-1 mx-3">
               <div className="bg-white/5 rounded-md px-3 py-1 text-xs text-muted-foreground truncate">
-                {url}
+                {url || "Предпросмотр"}
               </div>
             </div>
           </div>

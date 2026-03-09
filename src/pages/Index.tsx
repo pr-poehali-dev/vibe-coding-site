@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import ChatWidget from "@/components/ChatWidget";
 import SitePreview from "@/components/SitePreview";
 
-const GENERATE_URL = "https://functions.poehali.dev/3d7133f6-18e0-4ef6-9423-385380880191";
+const GENERATE_URL = "https://188.137.252.157/generate";
 
 const NAV_LINKS = [
   { label: "Возможности", href: "#features" },
@@ -309,7 +309,7 @@ function GeneratingOverlay() {
           style={{ width: `${Math.min(15 + step * 20, 90)}%` }}
         />
       </div>
-      <p className="text-xs text-muted-foreground mt-4">Обычно занимает 15-30 секунд</p>
+      <p className="text-xs text-muted-foreground mt-4">Обычно занимает 30-60 секунд</p>
     </div>
   );
 }
@@ -601,8 +601,8 @@ const Index = () => {
         setError(data.error || "Ошибка генерации");
         return;
       }
-      if (data.url && data.html) {
-        setGeneratedSite({ ...data, prompt });
+      if (data.html) {
+        setGeneratedSite({ site_id: '', url: '', html: data.html, prompt });
       }
     } catch {
       setError("Не удалось подключиться к серверу. Попробуйте ещё раз.");
