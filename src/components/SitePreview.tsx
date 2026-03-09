@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import Icon from "@/components/ui/icon";
 
@@ -9,14 +9,27 @@ interface SitePreviewProps {
   onClose: () => void;
 }
 
-export default function SitePreview({ url, prompt, onClose }: SitePreviewProps) {
+export default function SitePreview({ html, url, prompt, onClose }: SitePreviewProps) {
   const [viewMode, setViewMode] = useState<"desktop" | "tablet" | "mobile">("desktop");
   const [copied, setCopied] = useState(false);
   const [iframeLoaded, setIframeLoaded] = useState(false);
+  const [iframeSrc, setIframeSrc] = useState("");
 
   const widths = { desktop: "100%", tablet: "768px", mobile: "375px" };
 
+  useEffect(() => {
+    if (url) {
+      setIframeSrc(url);
+    } else if (html) {
+      const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+      const blobUrl = URL.createObjectURL(blob);
+      setIframeSrc(blobUrl);
+      return () => URL.revokeObjectURL(blobUrl);
+    }
+  }, [url, html]);
+
   const copyLink = () => {
+    if (!url) return;
     navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -63,12 +76,12 @@ export default function SitePreview({ url, prompt, onClose }: SitePreviewProps) 
                 className="text-muted-foreground hover:text-foreground"
               >
                 <Icon name={copied ? "Check" : "Copy"} size={16} className="mr-1.5" />
-                {copied ? "Скопировано" : "Копировать ссылку"}
+                {copied ? "Скопировано" : "Ссылка"}
               </Button>
               <a href={url} target="_blank" rel="noopener noreferrer">
                 <Button size="sm" className="bg-gradient-primary text-background font-semibold hover:opacity-90">
                   <Icon name="ExternalLink" size={16} className="mr-1.5" />
-                  Открыть сайт
+                  Открыть
                 </Button>
               </a>
             </>
@@ -76,9 +89,9 @@ export default function SitePreview({ url, prompt, onClose }: SitePreviewProps) 
         </div>
       </div>
 
-      <div className="flex-1 flex items-start justify-center p-6 overflow-auto">
+      <div className="flex-1 flex items-start justify-center p-4 sm:p-6 overflow-auto">
         <div
-          className="glass rounded-xl overflow-hidden transition-all duration-300 h-full"
+          className="glass rounded-xl overflow-hidden transition-all duration-300 h-full relative"
           style={{ width: widths[viewMode], maxWidth: "100%" }}
         >
           <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/10">
@@ -94,25 +107,21 @@ export default function SitePreview({ url, prompt, onClose }: SitePreviewProps) 
             </div>
           </div>
           {!iframeLoaded && (
-            <div
-              className="w-full flex flex-col items-center justify-center gap-3 text-muted-foreground absolute inset-0 mt-[45px]"
-            >
+            <div className="absolute inset-0 top-[40px] flex flex-col items-center justify-center gap-3 text-muted-foreground bg-background/50 z-10">
               <div className="w-6 h-6 border-2 border-current border-t-transparent rounded-full animate-spin" />
               Загрузка сайта...
             </div>
           )}
-          <iframe
-            src={url}
-            title="Предпросмотр сайта"
-            className="w-full bg-white"
-            style={{
-              height: "calc(100vh - 160px)",
-              opacity: iframeLoaded ? 1 : 0,
-              transition: "opacity 0.3s ease",
-            }}
-            onLoad={() => setIframeLoaded(true)}
-            sandbox="allow-scripts allow-same-origin"
-          />
+          {iframeSrc && (
+            <iframe
+              src={iframeSrc}
+              title="Предпросмотр сайта"
+              className="w-full bg-white"
+              style={{ height: "calc(100vh - 160px)" }}
+              onLoad={() => setIframeLoaded(true)}
+              sandbox="allow-scripts allow-same-origin"
+            />
+          )}
         </div>
       </div>
     </div>

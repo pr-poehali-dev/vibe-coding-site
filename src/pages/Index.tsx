@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import ChatWidget from "@/components/ChatWidget";
 import SitePreview from "@/components/SitePreview";
 
-const GENERATE_URL = "https://api.vibekodi.online/generate";
+const GENERATE_URL = "https://functions.poehali.dev/3d7133f6-18e0-4ef6-9423-385380880191";
 
 const NAV_LINKS = [
   { label: "Возможности", href: "#features" },
@@ -604,10 +604,10 @@ const Index = () => {
       const html = data.html || '';
       const siteUrl = data.url || '';
       const siteId = data.site_id || '';
-      if (html && siteUrl) {
+      if (html) {
         setGeneratedSite({ site_id: siteId, url: siteUrl, html, prompt });
       } else {
-        setError("Сервер вернул пустой результат");
+        setError(data.error || "Сервер вернул пустой результат");
       }
     } catch (err) {
       console.error("Generate error:", err);
