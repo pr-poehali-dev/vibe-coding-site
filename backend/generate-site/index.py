@@ -27,7 +27,7 @@ SYSTEM_PROMPT = """Ты — профессиональный генератор 
 
 
 def handler(event, context):
-    """Генерирует HTML-сайт по текстовому описанию через Claude AI и публикует его"""
+    """Генерирует HTML-сайт по текстовому описанию через OpenAI и публикует его"""
 
     if event.get('httpMethod') == 'OPTIONS':
         return {
@@ -57,52 +57,46 @@ def handler(event, context):
     if not prompt:
         return {'statusCode': 400, 'headers': cors, 'body': json.dumps({'error': 'No prompt provided'})}
 
-    api_key = os.environ.get('ANTHROPIC_API_KEY', '')
+    api_key = os.environ.get('OPENAI_API_KEY', '')
     if not api_key:
         return {'statusCode': 500, 'headers': cors, 'body': json.dumps({'error': 'AI key not configured'})}
 
     payload = json.dumps({
-        "model": "claude-3-5-sonnet-20241022",
-        "max_tokens": 4096,
-        "system": SYSTEM_PROMPT,
+        "model": "gpt-4o-mini",
         "messages": [
-            {"role": "user", "content": f"Создай одностраничный сайт: {prompt}"}
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": f"Создай одностраничный сайт: {prompt}"},
         ],
+        "max_tokens": 4096,
+        "temperature": 0.7,
     }).encode('utf-8')
 
     req = urllib.request.Request(
-        'https://api.anthropic.com/v1/messages',
+        'https://api.openai.com/v1/chat/completions',
         data=payload,
         headers={
             'Content-Type': 'application/json',
-            'x-api-key': api_key,
-            'anthropic-version': '2023-06-01',
+            'Authorization': f'Bearer {api_key}',
         },
         method='POST',
     )
 
-    resp_data = None
     try:
-        with urllib.request.urlopen(req, timeout=25) as resp:
+        with urllib.request.urlopen(req, timeout=60) as resp:
             resp_data = json.loads(resp.read().decode('utf-8'))
     except urllib.error.HTTPError as e:
         error_body = e.read().decode('utf-8') if e.fp else ''
-        print(f"Anthropic API error {e.code}: {error_body}")
-        hint = ''
-        if e.code == 403:
-            hint = ' — проверьте, что на аккаунте Anthropic подключена оплата и ключ активен'
-        elif e.code == 401:
-            hint = ' — неверный API-ключ'
+        print(f"OpenAI API error {e.code}: {error_body}")
         return {
             'statusCode': 502,
             'headers': cors,
-            'body': json.dumps({'error': f'Ошибка AI ({e.code}){hint}'}),
+            'body': json.dumps({'error': f'Ошибка AI ({e.code})'}),
         }
 
     html_code = ''
-    for block in resp_data.get('content', []):
-        if block.get('type') == 'text':
-            html_code += block['text']
+    choices = resp_data.get('choices', [])
+    if choices:
+        html_code = choices[0].get('message', {}).get('content', '')
 
     html_code = html_code.strip()
     if html_code.startswith('```'):
@@ -116,7 +110,7 @@ def handler(event, context):
         return {
             'statusCode': 502,
             'headers': cors,
-            'body': json.dumps({'error': 'AI did not return valid HTML'}),
+            'body': json.dumps({'error': 'AI не вернул валидный HTML'}),
         }
 
     site_id = uuid.uuid4().hex[:12]
